@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo UMA 2026 - Modular Interface V3</title>
+    <!-- Iconos y Fuentes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --hex-width: 130px; 
+            --hex-height: 150px; 
+            --hex-gap: 15px;
+            
+            /* Paleta de Colores Refinada */
+            --primary: #a31621; /* Rojo Intenso */
+            --secondary: #1e272e; 
+            --accent: #fbc531; /* Amarillo brillante */
+            --text-main: #f5f6fa;
+            
+            --bg-gradient: radial-gradient(circle at center, #2f3640 0%, #101215 100%);
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            margin: 0;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- FONDO ANIMADO --- */
+        .bg-animation {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: panBackground 60s linear infinite;
+        }
+
+        @keyframes panBackground {
+            from { background-position: 0 0; }
+            to { background-position: 100px 100px; }
+        }
+
+        /* --- GRID SYSTEM --- */
+        .hex-container {
+            display: flex;
+            flex-wrap: wrap;
+            width: 1000px;
+            justify-content: center;
+            transform-origin: center;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding-bottom: 50px;
+        }
+
+        .hex-row {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: -35px;
+        }
+        
+        .hex-row:nth-child(even) {
+            transform: translateX(calc(var(--hex-width) / 2 + var(--hex-gap) / 2));
+        }
+
+        /* --- HEXAGONO --- */
+        .hex {
+            position: relative;
+            width: var(--hex-width);
+            height: var(--hex-height);
+            margin: 5px var(--hex-gap);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            
+            cursor: pointer;
+            transition: all 0.4s ease;
+            opacity: 0;
+            transform: translateY(30px) scale(0.8);
+        }
+
+        .hex.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* --- INTERACCIÓN Y ESTADOS --- */
+        .hex:hover {
+            transform: translateY(-10px) scale(1.15) !important;
+            z-index: 100;
+            background: var(--accent);
+            box-shadow: 0 15px 35px rgba(251, 197, 49, 0.4);
+        }
+        .hex:hover i, .hex:hover span { color: #1e272e; }
+
+        .hex.related-glow {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+            z-index: 5;
+        }
+        .hex.related-glow i { color: #fff; text-shadow: 0 0 5px #fff; }
+
+        /* Colores Específicos */
+        .hex.center { background: var(--primary); }
+        .hex.enfoque { border-bottom: 4px solid #44bd32; }
+        .hex.eje { border-bottom: 4px solid #0097e6; }
+        .hex.producto { border-bottom: 4px solid #8c7ae6; }
+        .hex.modalidad { border-bottom: 4px solid #e1b12c; }
+
+        /* Contenido Interno */
+        .hex i {
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            color: rgba(255,255,255,0.7);
+            transition: color 0.3s;
+        }
+        .hex span {
+            font-size: 0.7rem; /* Ajuste leve para nombres largos */
+            font-weight: 600;
+            text-transform: uppercase;
+            text-align: center;
+            letter-spacing: 0.5px;
+            padding: 0 10px;
+            line-height: 1.2;
+        }
+
+        /* --- OVERLAY DE DETALLE --- */
+        #detail-overlay {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            height: 0;
+            background: rgba(30, 39, 46, 0.98); /* Más opaco para lectura */
+            backdrop-filter: blur(15px);
+            overflow: hidden;
+            transition: height 0.4s cubic-bezier(0.86, 0, 0.07, 1);
+            z-index: 200;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #detail-overlay.active { height: 45vh; }
+
+        .overlay-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s delay 0.2s;
+        }
+
+        #detail-overlay.active .overlay-content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px; right: 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: rgba(255,255,255,0.5);
+            transition: color 0.2s;
+        }
+        .close-btn:hover { color: white; }
+
+        h2#d-title { 
+            font-size: 2.2rem; 
+            margin: 0 0 15px 0; 
+            background: linear-gradient(to right, #fff, #dfe6e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+        }
+
+        #d-cat {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* --- RESPONSIVE MOBILE --- */
+        @media (max-width: 768px) {
+            body { overflow-y: auto; align-items: flex-start; }
+            .hex-container {
+                width: 100%;
+                transform: scale(0.8);
+                margin-top: 50px;
+                margin-left: -15px; /* Ajuste centro */
+            }
+            .hex { margin: 2px var(--hex-gap); }
+            #detail-overlay.active { height: 60vh; }
+            h2#d-title { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-animation"></div>
+
+    <div class="hex-container" id="grid">
+        
+        <!-- FILA 1 -->
+        <div class="hex-row">
+            <div class="hex enfoque" id="h-human" data-related="h-uma,h-calidad" onclick="showDetail(this)" 
+                 data-title="Enfoque Humanista" 
+                 data-cat="Enfoque Pedagógico" 
+                 data-desc="Modelo centrado en la persona, priorizando la dignidad humana, los valores éticos y el bienestar integral del estudiante.">
+                <i class="fas fa-hands-holding-circle"></i>
+                <span>Humanista</span>
+            </div>
+            <div class="hex center" id="h-uma" data-related="h-human,h-const,h-conec,h-docencia,h-inv" onclick="showDetail(this)" 
+                 data-title="UMA 2026" 
+                 data-cat="Núcleo del Modelo" 
+                 data-desc="Modelo Educativo Modular Abierto enfocado en la formación integral, adaptado a la era digital y a las necesidades sociales contemporáneas.">
+                <i class="fas fa-university"></i>
+                <span>UMA 2026</span>
+            </div>
+            <div class="hex enfoque" id="h-const" data-related="h-uma,h-planes" onclick="showDetail(this)" 
+                 data-title="Enfoque Constructivista" 
+                 data-cat="Enfoque Pedagógico" 
+                 data-desc="Aprendizaje activo donde el estudiante no solo recibe información, sino que construye su propio conocimiento a través de la experiencia y la reflexión.">
+                <i class="fas fa-cubes"></i>
+                <span>Construct.</span>
+            </div>
+        </div>
+
+        <!-- FILA 2 -->
+        <div class="hex-row">
+            <div class="hex eje" id="h-inv" data-related="h-uma,h-calidad,h-soluciones" onclick="showDetail(this)" 
+                 data-title="Investigación Científica" 
+                 data-cat="Función Sustantiva" 
+                 data-desc="Generación sistemática de conocimiento y búsqueda de soluciones científicas a problemáticas reales de la sociedad.">
+                <i class="fas fa-microscope"></i>
+                <span>Investig.</span>
+            </div>
+            <div class="hex enfoque" id="h-conec" data-related="h-uma,h-virtual,h-innov" onclick="showDetail(this)" 
+                 data-title="Enfoque Conectivista" 
+                 data-cat="Enfoque Pedagógico" 
+                 data-desc="Aprendizaje en la era digital basado en la conexión de nodos especializados y redes de información global.">
+                <i class="fas fa-network-wired"></i>
+                <span>Conectiv.</span>
+            </div>
+            <div class="hex eje" id="h-docencia" data-related="h-uma,h-planes,h-calidad" onclick="showDetail(this)" 
+                 data-title="Docencia" 
+                 data-cat="Función Sustantiva" 
+                 data-desc="Excelencia académica en la mediación pedagógica y en los procesos de enseñanza-aprendizaje.">
+                <i class="fas fa-chalkboard-user"></i>
+                <span>Docencia</span>
+            </div>
+            <div class="hex eje" id="h-proy" data-related="h-uma,h-rsu" onclick="showDetail(this)" 
+                 data-title="Proyección Social" 
+                 data-cat="Función Sustantiva" 
+                 data-desc="Vinculación activa con el entorno y compromiso de servicio para generar impacto positivo en la comunidad.">
+                <i class="fas fa-hand-holding-heart"></i>
+                <span>Proy. Social</span>
+            </div>
+        </div>
+
+        <!-- FILA 3 -->
+        <div class="hex-row">
+             <div class="hex producto" id="h-calidad" data-related="h-docencia,h-inv" onclick="showDetail(this)" 
+                  data-title="Calidad Educativa" 
+                  data-cat="Resultado Institucional" 
+                  data-desc="Mejora continua, evaluación y acreditación de la excelencia en todos los procesos académicos y administrativos.">
+                <i class="fas fa-award"></i>
+                <span>Calidad</span>
+            </div>
+            <div class="hex eje" id="h-innov" data-related="h-conec,h-soluciones" onclick="showDetail(this)" 
+                 data-title="Innovación Tecnológica" 
+                 data-cat="Eje de Modernización" 
+                 data-desc="Integración estratégica de tecnologías emergentes, plataformas digitales e Inteligencia Artificial en la educación.">
+                <i class="fas fa-laptop-code"></i>
+                <span>Innovación</span>
+            </div>
+             <div class="hex eje" id="h-inter" data-related="h-uma,h-pert" onclick="showDetail(this)" 
+                  data-title="Internacionalización" 
+                  data-cat="Eje de Modernización" 
+                  data-desc="Fomento de la movilidad académica, el dominio de idiomas extranjeros y el desarrollo de una visión global en los estudiantes.">
+                <i class="fas fa-globe-americas"></i>
+                <span>Internac.</span>
+            </div>
+             <div class="hex producto" id="h-pert" data-related="h-inter,h-planes" onclick="showDetail(this)" 
+                  data-title="Pertinencia Académica" 
+                  data-cat="Resultado Institucional" 
+                  data-desc="Oferta educativa alineada dinámicamente con las demandas actuales y futuras del sector productivo.">
+                <i class="fas fa-briefcase"></i>
+                <span>Pertinencia</span>
+            </div>
+        </div>
+
+         <!-- FILA 4 -->
+         <div class="hex-row">
+            <div class="hex modalidad" id="h-virtual" data-related="h-conec" onclick="showDetail(this)" 
+                 data-title="Modalidad Virtual" 
+                 data-cat="Modalidad de Estudio" 
+                 data-desc="Formación 100% en línea, flexible y asíncrona, utilizando entornos virtuales de aprendizaje avanzados.">
+               <i class="fas fa-wifi"></i>
+               <span>Virtual</span>
+           </div>
+           <div class="hex producto" id="h-planes" data-related="h-docencia,h-const,h-pert" onclick="showDetail(this)" 
+                data-title="Planes por Competencias" 
+                data-cat="Diseño Curricular" 
+                data-desc="Planes de estudio estructurados para desarrollar competencias integrales: saber, saber hacer y saber ser.">
+               <i class="fas fa-tasks"></i>
+               <span>Competencias</span>
+           </div>
+           <div class="hex modalidad" id="h-semi" data-related="h-planes" onclick="showDetail(this)" 
+                data-title="Modalidad Semipresencial" 
+                data-cat="Modalidad de Estudio" 
+                data-desc="Modelo B-Learning (Híbrido) que combina la flexibilidad virtual con sesiones prácticas presenciales clave.">
+               <i class="fas fa-user-clock"></i>
+               <span>Híbrido</span>
+           </div>
+       </div>
+
+    </div>
+
+    <!-- Panel de Detalle Moderno -->
+    <div id="detail-overlay">
+        <div class="close-btn" onclick="closeDetail()">&times;</div>
+        <div class="overlay-content">
+            <span id="d-cat">Categoría</span>
+            <h2 id="d-title">Título</h2>
+            <p id="d-desc" style="font-size: 1.2rem; line-height: 1.6; color: #dcdde1; font-weight: 300;">Descripción...</p>
+        </div>
+    </div>
+
+    <script>
+        // 1. ANIMACIÓN DE ENTRADA
+        document.addEventListener('DOMContentLoaded', () => {
+            const hexes = document.querySelectorAll('.hex');
+            hexes.forEach((hex, index) => {
+                setTimeout(() => {
+                    hex.classList.add('visible');
+                }, index * 100);
+            });
+        });
+
+        // 2. CONEXIONES INTELIGENTES
+        const allHexes = document.querySelectorAll('.hex');
+        
+        allHexes.forEach(hex => {
+            hex.addEventListener('mouseenter', () => {
+                const relatedIds = hex.getAttribute('data-related');
+                if (relatedIds) {
+                    const ids = relatedIds.split(',');
+                    ids.forEach(id => {
+                        const target = document.getElementById(id);
+                        if (target) target.classList.add('related-glow');
+                    });
+                }
+            });
+
+            hex.addEventListener('mouseleave', () => {
+                allHexes.forEach(h => h.classList.remove('related-glow'));
+            });
+        });
+
+        // 3. LOGICA DEL MODAL
+        function showDetail(element) {
+            const title = element.getAttribute('data-title');
+            const cat = element.getAttribute('data-cat');
+            const desc = element.getAttribute('data-desc');
+            const color = getComputedStyle(element).borderBottomColor;
+
+            document.getElementById('d-title').innerText = title;
+            document.getElementById('d-cat').innerText = cat;
+            document.getElementById('d-cat').style.borderColor = color;
+            document.getElementById('d-cat').style.color = color;
+            document.getElementById('d-desc').innerText = desc;
+            
+            document.getElementById('detail-overlay').classList.add('active');
+            
+            document.getElementById('grid').style.transform = "scale(0.85) translateY(-50px)";
+            document.getElementById('grid').style.opacity = "0.5";
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-overlay').classList.remove('active');
+            document.getElementById('grid').style.transform = "scale(1)";
+            document.getElementById('grid').style.opacity = "1";
+        }
+    </script>
+</body>
+</html>
